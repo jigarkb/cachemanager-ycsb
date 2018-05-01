@@ -1,0 +1,174 @@
+#!/bin/bash
+# This is the top-level script that runs one or more of the YCSB benchmarks
+# on RAMCloud.  This script is somewhat brittle right now: not much error
+# handling, hardwired configuration information, etc.
+
+# Configuration information you may need to modify:
+
+# Information about the experiments you'd like to run:
+# TRANSPORTS:       list of RAMCloud transports to use
+# SERVER_MEMORIES:  list of different log sizes to try on the servers, which
+#                   determine memory utilization; 1680 supposedly means 75%
+#                   utilization and 1450 supposedly means 90% utilization
+# CLIENT_COUNTS:    different numbers of clients to try
+# WORKLOADS:        YCSB workloads to run (combination of a, b, c, d, and f;
+#                   RAMCloud can't currently run with e); must run workload f
+#                   before d (not sure why)
+# RUNS:             How many different runs to carry out with each setting
+
+TRANSPORTS="tcp"
+SERVER_MEMORIES="1450"
+CLIENT_COUNTS="1"
+WORKLOADS="a"
+RUNS=1
+
+# Machines to use for the runs ("xx" means "ramcloudxx").  Make sure that enough
+# clients have been specified to cover the CLIENT_COUNTS values above.
+COORDINATOR="-server-1"
+SERVERS="-server-1"
+FILL_CLIENTS="-client-1"
+CLIENTS="-client-1"
+
+SSH_CRED="/home/administrator/.ssh/jigar_cloud_admin"
+# Uncomment the following line to start up an extra backup on the
+# given servers.
+# EXTRA_BACKUPS="69 70 71 72 73 74 75 76 77 78 79 80"
+
+# Clean the coordinator, servers, and clients when receive SIGINT
+function sigint_handler() {
+  echo "Stop coordinator: ramcloud${COORDINATOR}"
+  ssh -i $SSH_CRED admin@ramcloud$COORDINATOR pkill coordinator
+
+  for s in $SERVERS $EXTRA_BACKUPS; do
+    echo "Stop server: ramcloud$s"
+    ssh -i $SSH_CRED admin@ramcloud$s pkill server
+  done
+
+  for s in $CLIENTS; do
+    echo "Stop client: ramcloud$s"
+    ssh -i $SSH_CRED admin@ramcloud$s pkill java
+  done
+  exit 0
+}
+trap 'sigint_handler' 2
+
+# Top-level directory in which log subdirectories will be created.
+TOP_LOG_DIR="logs"
+
+# Current directory, for passing to ssh programs
+WD="/home/admin/jigarkb/cachemanager-ycsb"
+
+# Directory containing RAMCloud binaries
+RAMCLOUD_BIN="$WD/ramcloud/bin"
+
+TIME=$(date +%Y%m%d%H%M%S)
+TOP_LOG_DIR=`pwd`"/logs"
+LOG_DIR="$TOP_LOG_DIR/${TIME}$1"
+mkdir -p $LOG_DIR
+rm $TOP_LOG_DIR/latest
+ln -s $LOG_DIR $TOP_LOG_DIR/latest
+
+for TRANSPORT in $TRANSPORTS; do
+  if [ "$TRANSPORT" = "tcp" ]; then
+    COORD_LOCATOR="tcp:host=ramcloud$COORDINATOR,port=8001"
+    LOCATOR_BASE="tcp:"
+  else
+    echo Unsupported transport $TRANSPORT
+    exit 1
+  fi
+
+  for SERVER_MEMORY in $SERVER_MEMORIES; do
+    for ((RUN=1; RUN<=$RUNS; RUN++)); do
+      for CLIENT_COUNT in $CLIENT_COUNTS; do
+        LOG_SUBDIR="$LOG_DIR/$TRANSPORT""_$SERVER_MEMORY""_$CLIENT_COUNT""clients_run$RUN"
+        mkdir -p $LOG_SUBDIR
+
+        # Start Servers
+        echo "Starting coordinator for run $RUN..."
+          CMD="$RAMCLOUD_BIN/coordinator \
+            -C $COORD_LOCATOR \
+            -d 10000 \
+            --clusterName=__unnamed__ \
+            > $LOG_SUBDIR/coordinator.log 2>&1"
+        ssh -i $SSH_CRED admin@ramcloud$COORDINATOR "$CMD" > /dev/null 2>&1 &
+
+        echo "Starting servers for run $RUN..."
+        NUM_BACKUPS="0"
+        NUM_MASTERS="0"
+        for s in $SERVERS; do
+          CMD="$RAMCLOUD_BIN/server \
+              -C $COORD_LOCATOR \
+              -L ${LOCATOR_BASE}host=ramcloud$s,port=8002 \
+              --clusterName=__unnamed__ \
+              --detectFailures 0 \
+              --timeout 10000 \
+              -r 0 \
+              -t $SERVER_MEMORY \
+              -w 1 \
+              --maxCores 4 \
+              --logCleanerThreads 2 \
+              --masterOnly \
+              > $LOG_SUBDIR/server-ramcloud$s.log 2>&1"
+          ssh -i $SSH_CRED admin@ramcloud$s "$CMD" > /dev/null 2>&1 &
+          NUM_MASTERS=$((NUM_MASTERS + 1))
+        done
+
+        if $RAMCLOUD_BIN/ensureServers -C $COORD_LOCATOR \
+            --masters $NUM_MASTERS --backups $NUM_BACKUPS --wait 20 \
+            > $LOG_SUBDIR/ensureServers.log 2>&1; then
+          true
+        else
+          echo "Cluster didn't startup correctly; see $LOG_SUBDIR/ensureServers.log"
+          ssh -i $SSH_CRED admin@ramcloud$COORDINATOR pkill coordinator
+          for s in $SERVERS $EXTRA_BACKUPS; do
+            ssh -i $SSH_CRED admin@ramcloud$s pkill server
+          done
+          exit 1
+        fi
+
+        # Load the dataset for the run
+        echo "Filling the key-value store for run $RUN..."
+        ./helper $COORD_LOCATOR logMessage NOTICE \
+            "**** Filling the key-value store for run $RUN"
+        ./fillCM.sh $WD $COORD_LOCATOR $LOG_SUBDIR "$FILL_CLIENTS"
+        ./helper $COORD_LOCATOR logMessage NOTICE \
+            "**** Finished filling the key-value store"
+
+        # Figure out which of the clients to use
+        COUNT=0
+        USE_CLIENTS=""
+        for CLIENT in $CLIENTS; do
+          if [ $COUNT -lt $CLIENT_COUNT ]; then
+            USE_CLIENTS="$USE_CLIENTS $CLIENT"
+          fi
+          COUNT=$((COUNT + 1))
+        done
+
+        # Run the measurement workloads
+        for WORKLOAD in $WORKLOADS; do
+          echo "Running workload $WORKLOAD for run $RUN..."
+          ./helper $COORD_LOCATOR logMessage NOTICE \
+              "**** Running workload $WORKLOAD for run $RUN"
+          mkdir $LOG_SUBDIR/workload$WORKLOAD
+          ./runCM.sh $WD $LOG_SUBDIR/workload$WORKLOAD $COORD_LOCATOR \
+              workload${WORKLOAD} "$USE_CLIENTS"
+        done
+        ./helper $COORD_LOCATOR logMessage NOTICE "**** Workloads finished"
+
+        # Kill all servers
+        echo "Killing servers for run $RUN..."
+        ssh -i $SSH_CRED admin@ramcloud$COORDINATOR pkill coordinator
+        for s in $SERVERS $EXTRA_BACKUPS; do
+          ssh -i $SSH_CRED admin@ramcloud$s pkill server
+        done
+
+        # Leave a bit of time for servers to really exit before the next run
+        # (not sure why this is needed...)
+        sleep 5
+      done
+    done
+  done
+done
+
+# Print statistics
+./printStats.py $LOG_DIR | tee $LOG_DIR/stats
