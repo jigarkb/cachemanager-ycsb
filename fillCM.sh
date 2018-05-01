@@ -11,7 +11,7 @@ WD=$1
 COORD=$2
 LOG_DIR=$3
 CLIENTS=$4
-SSH_CRED="/home/administrator/.ssh/jigar_cloud_admin admin@"
+SSH_CRED="/home/admin/.ssh/jigar_cloud_admin"
 
 LOGS=""
 START="0"

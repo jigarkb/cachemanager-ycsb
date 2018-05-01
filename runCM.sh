@@ -22,7 +22,7 @@ LOG_DIR=$2
 COORD=$3
 WORKLOAD=$4
 CLIENTS=$5
-SSH_CRED="/home/administrator/.ssh/jigar_cloud_admin"
+SSH_CRED="/home/admin/.ssh/jigar_cloud_admin"
 # After this many seconds have elapsed in the benchmark, each server will
 # be asked to dump a time trace to its log.
 SECS_BEFORE_FIRST_TIME_TRACE_DUMP=50
@@ -47,10 +47,10 @@ for CLIENT in $CLIENTS; do LAST_CLIENT=$CLIENT; done
 
 LOGS=""
 for CLIENT in $CLIENTS; do
-  LOG=$LOG_DIR/client-rc$CLIENT.log
+  LOG=$LOG_DIR/client-ramcloud$CLIENT.log
   LOGS="$LOGS $LOG"
   CMD="sh $WD/rc-ycsb.sh ${WORKLOAD} 10000000 $COORD \
-       > $LOG_DIR/client-rc$CLIENT.log 2>&1"
+       > $LOG_DIR/client-ramcloud$CLIENT.log 2>&1"
   if [ $CLIENT == $LAST_CLIENT ]; then
     ssh -i $SSH_CRED admin@ramcloud$CLIENT $CMD >/dev/null 2>&1
   else
