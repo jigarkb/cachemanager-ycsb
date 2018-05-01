@@ -29,7 +29,7 @@ SERVERS="-server-1"
 FILL_CLIENTS="-client-1"
 CLIENTS="-client-1"
 
-SSH_CRED="/home/administrator/.ssh/jigar_cloud_admin"
+SSH_CRED="/home/admin/.ssh/jigar_cloud_admin"
 # Uncomment the following line to start up an extra backup on the
 # given servers.
 # EXTRA_BACKUPS="69 70 71 72 73 74 75 76 77 78 79 80"
@@ -56,7 +56,7 @@ trap 'sigint_handler' 2
 TOP_LOG_DIR="logs"
 
 # Current directory, for passing to ssh programs
-WD="/home/admin/jigarkb/cachemanager-ycsb"
+WD=`pwd`
 
 # Directory containing RAMCloud binaries
 RAMCLOUD_BIN="$WD/ramcloud/bin"
@@ -90,6 +90,7 @@ for TRANSPORT in $TRANSPORTS; do
             -d 10000 \
             --clusterName=__unnamed__ \
             > $LOG_SUBDIR/coordinator.log 2>&1"
+        ssh -i $SSH_CRED admin@ramcloud$COORDINATOR "mkdir -p $LOG_SUBDIR" > /dev/null 2>&1
         ssh -i $SSH_CRED admin@ramcloud$COORDINATOR "$CMD" > /dev/null 2>&1 &
 
         echo "Starting servers for run $RUN..."
@@ -109,6 +110,7 @@ for TRANSPORT in $TRANSPORTS; do
               --logCleanerThreads 2 \
               --masterOnly \
               > $LOG_SUBDIR/server-ramcloud$s.log 2>&1"
+          ssh -i $SSH_CRED admin@ramcloud$s "mkdir -p $LOG_SUBDIR" > /dev/null 2>&1
           ssh -i $SSH_CRED admin@ramcloud$s "$CMD" > /dev/null 2>&1 &
           NUM_MASTERS=$((NUM_MASTERS + 1))
         done
