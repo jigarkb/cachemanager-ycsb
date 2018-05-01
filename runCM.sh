@@ -51,6 +51,7 @@ for CLIENT in $CLIENTS; do
   LOGS="$LOGS $LOG"
   CMD="sh $WD/rc-ycsb.sh ${WORKLOAD} 10000000 $COORD \
        > $LOG_DIR/client-ramcloud$CLIENT.log 2>&1"
+  ssh -i $SSH_CRED admin@ramcloud$CLIENT "mkdir -p $LOG_DIR" > /dev/null 2>&1
   if [ $CLIENT == $LAST_CLIENT ]; then
     ssh -i $SSH_CRED admin@ramcloud$CLIENT $CMD >/dev/null 2>&1
   else
