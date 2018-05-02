@@ -314,7 +314,7 @@ public class CacheManagerClient extends DB {
             object = ramcloud.read(getTableId(table), key);
             if(object == null) {
                 HashMap<String, ByteIterator> cm_values = generateValues(10, 100);
-                this.insert(getTableId(table), key, cm_values);
+                this.insert(table, key, cm_values);
             }
 
         } catch (Exception e) {
