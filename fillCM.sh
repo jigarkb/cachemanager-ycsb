@@ -21,14 +21,14 @@ for CLIENT in $CLIENTS; do
   LOGS="$LOGS $LOG"
   if (($CLIENT == $LAST_CLIENT)); then
     ssh -i $SSH_CRED admin@ramcloud$CLIENT \
-        $WD/rc-ycsb.sh workloada \
+        $WD/rc-ycsbCM.sh workloada \
         1000000 \
         $COORD \
         $START \
         1000000 > $LOG 2>&1
   else
     ssh -i $SSH_CRED admin@ramcloud$CLIENT \
-        $WD/rc-ycsb.sh workloada \
+        $WD/rc-ycsbCM.sh workloada \
         1000000 \
         $COORD \
         $START \

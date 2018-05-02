@@ -13,11 +13,14 @@ CXX ?= g++
 LIBS := -L$(RAMCLOUD_DIR)/lib/ramcloud -lramcloud
 JAVA_DIR := YCSB/ramcloud/src/main/java/com/yahoo/ycsb/db
 
-all: helper $(JAVA_DIR)/RamCloudClient.class
+all: helper $(JAVA_DIR)/RamCloudClient.class $(JAVA_DIR)/CacheManagerClient.class
 helper: helper.cc $(LIB_DIR)/libramcloud.so
 	$(CXX) $(CXXFLAGS) $(INCLUDES) helper.cc -o helper $(LIBS) -Wl,-rpath=$(LIB_DIR)
 
-CP := $(RAMCLOUD_DIR)/lib/ramcloud/ramcloud.jar:YCSB/core/target/core-0.1.4.jar
+CP := $(RAMCLOUD_DIR)/lib/ramcloud/CacheManager.jar:$(RAMCLOUD_DIR)/lib/ramcloud/ramcloud.jar:YCSB/core/target/core-0.1.4.jar
 
 $(JAVA_DIR)/RamCloudClient.class: $(JAVA_DIR)/RamCloudClient.java
 	javac -cp $(CP) $(JAVA_DIR)/RamCloudClient.java
+
+$(JAVA_DIR)/CacheManagerClient.class: $(JAVA_DIR)/CacheManagerClient.java
+	javac -cp $(CP) $(JAVA_DIR)/CacheManagerClient.java
