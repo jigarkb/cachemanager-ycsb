@@ -129,12 +129,12 @@ for TRANSPORT in $TRANSPORTS; do
         fi
 
         # Load the dataset for the run
-        echo "Filling the key-value store for run $RUN..."
-        ./helper $COORD_LOCATOR logMessage NOTICE \
-            "**** Filling the key-value store for run $RUN"
-        ./fillCM.sh $WD $COORD_LOCATOR $LOG_SUBDIR "$FILL_CLIENTS"
-        ./helper $COORD_LOCATOR logMessage NOTICE \
-            "**** Finished filling the key-value store"
+        # echo "Filling the key-value store for run $RUN..."
+        # ./helper $COORD_LOCATOR logMessage NOTICE \
+        #    "**** Filling the key-value store for run $RUN"
+        # ./fillCM.sh $WD $COORD_LOCATOR $LOG_SUBDIR "$FILL_CLIENTS"
+        # ./helper $COORD_LOCATOR logMessage NOTICE \
+        #    "**** Finished filling the key-value store"
 
         # Figure out which of the clients to use
         COUNT=0
