@@ -57,6 +57,7 @@ for CLIENT in $CLIENTS; do
   else
     ssh -i $SSH_CRED admin@ramcloud$CLIENT $CMD >/dev/null 2>&1 &
   fi
+  scp -i $SSH_CRED admin@ramcloud$CLIENT:$LOG $LOG
   sleep .001
 done
 
