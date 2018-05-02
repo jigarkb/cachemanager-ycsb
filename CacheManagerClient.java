@@ -312,6 +312,11 @@ public class CacheManagerClient extends DB {
         HashMap<String, ByteIterator> map = new HashMap<String, ByteIterator>();
         try {
             object = ramcloud.read(getTableId(table), key);
+            if(object == null) {
+                HashMap<String, ByteIterator> cm_values = generateValues(10, 100);
+                this.insert(getTableId(table), key, cm_values);
+            }
+
         } catch (Exception e) {
             if (debug)
                 System.err.println("RamCloudClient read threw: " + e);

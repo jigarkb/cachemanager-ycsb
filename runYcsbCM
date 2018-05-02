@@ -19,7 +19,7 @@
 TRANSPORTS="tcp"
 SERVER_MEMORIES="1680"
 CLIENT_COUNTS="1"
-WORKLOADS="a"
+WORKLOADS="c"
 RUNS=1
 
 # Machines to use for the runs ("xx" means "ramcloudxx").  Make sure that enough
