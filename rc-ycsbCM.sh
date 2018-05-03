@@ -47,9 +47,9 @@ if [ "$INSERT_COUNT" = "" ]; then
       -p ramcloud.coordinatorLocator=${COORD} \
       -p ramcloud.tableServerSpan=24 \
       -p recordcount=${RECORDS} \
-      -p operationcount=${RECORDS} \
+      -p operationcount=$(($RECORDS*2)) \
       -p requestdistribution=zipfian \
-      -threads 10
+      -threads 12
 else
   java -cp $CP com.yahoo.ycsb.Client -db $DB \
       -P workloads/${WORKLOAD} -load \
@@ -59,5 +59,5 @@ else
       -p operationcount=${RECORDS} \
       -p insertstart=${INSERT_START} \
       -p insertcount=${INSERT_COUNT} \
-      -threads 10
+      -threads 12
 fi
