@@ -160,8 +160,10 @@ for TRANSPORT in $TRANSPORTS; do
         # Kill all servers
         echo "Killing servers for run $RUN..."
         ssh -i $SSH_CRED admin@ramcloud$COORDINATOR pkill coordinator
+        scp -i $SSH_CRED admin@ramcloud$COORDINATOR:$LOG_SUBDIR/coordinator.log $LOG_SUBDIR/coordinator.log
         for s in $SERVERS $EXTRA_BACKUPS; do
           ssh -i $SSH_CRED admin@ramcloud$s pkill server
+          scp -i $SSH_CRED admin@ramcloud$s:$LOG_SUBDIR/server-ramcloud$s.log $LOG_SUBDIR/server-ramcloud$s.log
         done
 
         # Leave a bit of time for servers to really exit before the next run
