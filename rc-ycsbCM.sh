@@ -48,7 +48,7 @@ if [ "$INSERT_COUNT" = "" ]; then
       -p ramcloud.tableServerSpan=24 \
       -p recordcount=${RECORDS} \
       -p operationcount=${RECORDS} \
-      -p requestdistribution=uniform \
+      -p requestdistribution=zipfian \
       -threads 8
 else
   java -cp $CP com.yahoo.ycsb.Client -db $DB \
