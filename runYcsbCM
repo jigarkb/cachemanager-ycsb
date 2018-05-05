@@ -17,7 +17,7 @@
 # RUNS:             How many different runs to carry out with each setting
 
 TRANSPORTS="tcp"
-SERVER_MEMORIES="1680"
+SERVER_MEMORIES="605"
 CLIENT_COUNTS="1"
 WORKLOADS="c"
 RUNS=1
@@ -87,7 +87,6 @@ for TRANSPORT in $TRANSPORTS; do
         echo "Starting coordinator for run $RUN..."
           CMD="$RAMCLOUD_BIN/coordinator \
             -C $COORD_LOCATOR \
-            -d 10000 \
             --clusterName=__unnamed__ \
             > $LOG_SUBDIR/coordinator.log 2>&1"
         ssh -i $SSH_CRED admin@ramcloud$COORDINATOR "mkdir -p $LOG_SUBDIR" > /dev/null 2>&1
@@ -101,8 +100,6 @@ for TRANSPORT in $TRANSPORTS; do
               -C $COORD_LOCATOR \
               -L ${LOCATOR_BASE}host=ramcloud$s,port=8002 \
               --clusterName=__unnamed__ \
-              --detectFailures 0 \
-              --timeout 10000 \
               -r 0 \
               -t $SERVER_MEMORY \
               -w 1 \

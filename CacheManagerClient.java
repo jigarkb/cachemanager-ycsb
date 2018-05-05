@@ -49,6 +49,7 @@ import java.nio.BufferUnderflowException;
 import edu.stanford.ramcloud.RAMCloud;
 import edu.stanford.ramcloud.RAMCloudObject;
 import edu.usc.cs685.CacheManager;
+import java.util.Random;
 
 public class CacheManagerClient extends DB {
     private CacheManager ramcloud;
@@ -207,6 +208,7 @@ public class CacheManagerClient extends DB {
      * Initialize any state for this DB.
      * Called once per DB instance; there is one DB instance per client thread.
      */
+    public Random rand;
     public void
     init() throws DBException
     {
@@ -229,6 +231,7 @@ public class CacheManagerClient extends DB {
             System.err.println("RamCloudClient connecting to " + locator + " ...");
         ramcloud = new CacheManager(locator);
         tableIds = new HashMap<String, Long>();
+        rand = new Random();
     }
 
     /**
@@ -240,6 +243,7 @@ public class CacheManagerClient extends DB {
     {
         if (debug)
             System.err.println("RamCloudClient disconnecting ...");
+        System.out.println(String.format("CacheManager Stats\nEvictions: %s\nMiss: %s", ramcloud.eviction_count, ramcloud.miss_count));
         ramcloud.disconnect();
         ramcloud = null; 
         tableIds = null;
@@ -282,7 +286,9 @@ public class CacheManagerClient extends DB {
         byte[] byte_value = serialize(values);
         String value = new String(byte_value);
         try {
-            ramcloud.write(getTableId(table), key, value, 1);
+            int n = rand.nextInt(2);
+            Integer[] costs = {1, 10, 10000};
+            ramcloud.write(getTableId(table), key, value, costs[n]);
         } catch (Exception e) {
             if (debug)
                 System.err.println("RamCloudClient insert threw: " + e);
@@ -315,7 +321,7 @@ public class CacheManagerClient extends DB {
         } catch (Exception e) {
             if (debug)
                 System.err.println("RamCloudClient read threw: " + e);
-            this.insert(table, key, generateValues(10, 100));
+            this.insert(table, key, generateValues(10, 1000));
             return ERROR;
         }
 
